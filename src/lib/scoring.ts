@@ -103,7 +103,7 @@ export function analyzeStrikes(
     score += piecewise(absDelta, [[dMin - 0.1, 0], [dMin, 22], [(dMin + dMax) / 2, 30], [dMax, 22], [dMax + 0.1, 0]])
     score += piecewise(annualized / t.minAnnualizedReturn, [[0.5, 0], [1, 18], [1.6, 28]])
     score += piecewise(sigmas, [[0.4, 0], [0.8, 10], [1, 16], [1.6, 18]])
-    score += piecewise(sp, [[0.03, 14], [0.1, 8], [0.2, 2], [0.4, 0]])
+    score += Number.isFinite(sp) ? piecewise(sp, [[0.03, 14], [0.1, 8], [0.2, 2], [0.4, 0]]) : 8
     score += piecewise(c.openInterest, [[0, 0], [t.minOpenInterest, 7], [t.minOpenInterest * 5, 10]])
     if (belowBasis) {
       score *= 0.35
@@ -319,16 +319,18 @@ export function scoreSide(
     const max = 10
     const sp = rec?.spreadPct ?? m.medianSpreadPct
     const oi = rec?.openInterest ?? NaN
-    let pts = piecewise(sp, [[0.03, 10], [t.maxSpreadPct, 6], [0.25, 1], [0.5, 0]])
+    const spreadKnown = Number.isFinite(sp)
+    let pts = spreadKnown ? piecewise(sp, [[0.03, 10], [t.maxSpreadPct, 6], [0.25, 1], [0.5, 0]]) : 6
     if (Number.isFinite(oi) && oi < t.minOpenInterest) pts = Math.min(pts, 4)
     f.push({
       key: 'liquidity',
       label: 'Liquidity',
       points: pts,
       max,
-      value: `${pct(sp, 0)} spread`,
-      reason:
-        pts >= 8
+      value: spreadKnown ? `${pct(sp, 0)} spread` : 'spread n/a',
+      reason: !spreadKnown
+        ? 'This data source has no bid-ask quotes, so the spread is unknown. Check it with your broker before entering.'
+        : pts >= 8
           ? 'Tight spreads and healthy open interest. Entry and any roll will fill near mid.'
           : pts >= 5
             ? 'Workable liquidity. Use limit orders at or above mid.'

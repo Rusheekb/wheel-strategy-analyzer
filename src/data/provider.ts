@@ -4,6 +4,8 @@ export interface FetchOptions {
   // Only load option expiries up to this many days out. Providers that
   // fetch one request per expiry use it to keep scans cheap.
   maxDte?: number
+  // Called with short status lines while a slow (rate-limited) fetch runs.
+  onProgress?: (message: string) => void
 }
 
 export interface DataProvider {

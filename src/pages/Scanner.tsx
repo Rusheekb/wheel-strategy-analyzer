@@ -31,6 +31,7 @@ export function Scanner({ onOpen }: { onOpen: (symbol: string) => void }) {
   const [running, setRunning] = useState(false)
   const [input, setInput] = useState('')
   const [sort, setSort] = useState<'best' | 'put' | 'call' | 'symbol'>('best')
+  const [progress, setProgress] = useState('')
   const cancel = useRef(false)
 
   const watchlist = settings.watchlist
@@ -58,7 +59,7 @@ export function Scanner({ onOpen }: { onOpen: (symbol: string) => void }) {
       if (cancel.current) break
       patch(symbol, { status: 'loading' })
       try {
-        const snap = await provider.fetchSnapshot(symbol, { maxDte: t.dteMax + 10 })
+        const snap = await provider.fetchSnapshot(symbol, { maxDte: t.dteMax + 10, onProgress: (m) => setProgress(`${symbol}: ${m}`) })
         const m = computeMetrics(snap)
         const exp = pickTargetExpiry(m.expiries, t.dteMin, t.dteMax)
         if (!exp) throw new Error('No expiry inside the DTE range')
@@ -78,6 +79,7 @@ export function Scanner({ onOpen }: { onOpen: (symbol: string) => void }) {
       }
     }
     setRunning(false)
+    setProgress('')
   }
 
   const sorted = useMemo(() => {
@@ -147,7 +149,10 @@ export function Scanner({ onOpen }: { onOpen: (symbol: string) => void }) {
             ? 'Demo data: symbols outside the demo set get a generic synthetic series.'
             : settings.provider === 'tradier'
               ? 'Tradier: each symbol uses about three requests plus one per expiry inside your DTE range. Results are cached for 15 minutes.'
-              : 'Alpha Vantage: each symbol uses four of your 25 daily requests. Keep the list short.'}
+              : settings.provider === 'massive'
+                ? 'Massive: about three requests per symbol at 5 a minute, so expect roughly a minute per ticker on the first pass. Results are cached for six hours.'
+                : 'Alpha Vantage: each symbol uses four of your 25 daily requests. Keep the list short.'}
+          {running && progress ? ` · ${progress}` : ''}
         </div>
       </div>
 

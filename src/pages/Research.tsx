@@ -27,6 +27,7 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
   const [selected, setSelected] = useState<StrikeRow | undefined>()
   const [logged, setLogged] = useState<string | null>(null)
   const [recent, setRecent] = useState<string[]>(() => loadRaw<string[]>('recent', []))
+  const [progress, setProgress] = useState('')
 
   const t = settings.thresholds
 
@@ -36,8 +37,9 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
     setLoading(true)
     setError(null)
     setLogged(null)
+    setProgress('')
     try {
-      const snap = await providerFor(settings).fetchSnapshot(s)
+      const snap = await providerFor(settings).fetchSnapshot(s, { onProgress: setProgress })
       setSnapshot(snap)
       setExpiryKey(null)
       setSelected(undefined)
@@ -49,6 +51,7 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
       setError({ message: err.message || 'Failed to load data', hint: err instanceof ProviderError ? err.hint : undefined })
     } finally {
       setLoading(false)
+      setProgress('')
     }
   }
 
@@ -137,9 +140,10 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
         </div>
         <span className="spacer" />
         <button type="button" className={`pill ${settings.provider === 'demo' ? 'pill-neutral' : 'pill-good'}`} onClick={onGoSettings} style={{ border: 0, cursor: 'pointer' }} title="Change data source">
-          {settings.provider === 'demo' ? 'Demo data' : settings.provider === 'tradier' ? `Tradier ${settings.tradierEnv}` : 'Alpha Vantage'}
+          {settings.provider === 'demo' ? 'Demo data' : settings.provider === 'tradier' ? `Tradier ${settings.tradierEnv}` : settings.provider === 'massive' ? 'Massive' : 'Alpha Vantage'}
         </button>
       </div>
+      {loading && progress && <div className="xs faint fade-in">{progress}</div>}
       {settings.provider === 'demo' && (
         <div className="banner">
           <IconInfo />

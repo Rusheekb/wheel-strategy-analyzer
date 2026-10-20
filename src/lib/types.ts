@@ -81,10 +81,11 @@ export const DEFAULT_THRESHOLDS: Thresholds = {
   avoidEarnings: true,
 }
 
-export type ProviderId = 'demo' | 'tradier' | 'alphavantage'
+export type ProviderId = 'demo' | 'massive' | 'tradier' | 'alphavantage'
 
 export interface Settings {
   apiKey: string // Alpha Vantage
+  massiveKey: string
   tradierToken: string
   tradierEnv: 'sandbox' | 'production'
   provider: ProviderId

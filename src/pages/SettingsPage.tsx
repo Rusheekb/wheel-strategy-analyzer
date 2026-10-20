@@ -29,8 +29,9 @@ function NumField({ label, help, value, onChange, step = 1, pct = false, min, ma
 
 const PROVIDERS: Array<{ id: ProviderId; title: string; tag: string; blurb: string }> = [
   { id: 'demo', title: 'Demo data', tag: 'No key', blurb: 'Synthetic prices and chains. Good for learning the tool and testing your rules.' },
-  { id: 'tradier', title: 'Tradier', tag: 'Recommended', blurb: 'Free developer sandbox with 15-minute delayed chains, IV and greeks. Per-minute limits, so the scanner works.' },
-  { id: 'alphavantage', title: 'Alpha Vantage', tag: '25 requests / day', blurb: 'End-of-day chains with greeks. Four requests per ticker, so about six tickers a day.' },
+  { id: 'massive', title: 'Massive (Polygon)', tag: 'Free key, 5 / min', blurb: 'End-of-day prices and option chains with greeks. Slow but steady: a ticker takes about a minute. Chain access depends on the plan; the test below tells you.' },
+  { id: 'alphavantage', title: 'Alpha Vantage', tag: '25 / day', blurb: 'End-of-day chains with greeks. Four requests per ticker, so about six tickers a day.' },
+  { id: 'tradier', title: 'Tradier', tag: 'Brokerage account', blurb: 'Delayed chains with greeks on a paper-trading token. Requires a Tradier brokerage account, which asks for identity details.' },
 ]
 
 export function SettingsPage() {
@@ -87,7 +88,7 @@ export function SettingsPage() {
           <h3>Market data</h3>
           <p className="small muted">Keys are stored in this browser only and sent straight to the provider.</p>
         </div>
-        <div className="grid grid-3">
+        <div className="grid grid-4">
           {PROVIDERS.map((p) => (
             <button
               key={p.id}
@@ -137,6 +138,20 @@ export function SettingsPage() {
               ))}
             </div>
           </div>
+        )}
+
+        {settings.provider === 'massive' && (
+          <label className="field">
+            <span>Massive API key</span>
+            <input className="input mono" type="password" value={settings.massiveKey} onChange={(e) => update({ massiveKey: e.target.value.trim() })} placeholder="Paste your key" autoComplete="off" />
+            <span className="field-help">
+              Free at{' '}
+              <a href="https://massive.com/dashboard/keys" target="_blank" rel="noreferrer">
+                massive.com
+              </a>
+              . The free plan allows 5 requests a minute, so the app paces itself and caches responses for six hours. Run the test: it reports whether your plan includes the option chain snapshot, which carries greeks.
+            </span>
+          </label>
         )}
 
         {settings.provider === 'alphavantage' && (
