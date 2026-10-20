@@ -81,13 +81,12 @@ export const DEFAULT_THRESHOLDS: Thresholds = {
   avoidEarnings: true,
 }
 
-export type ProviderId = 'demo' | 'massive' | 'tradier' | 'alphavantage'
+export type ProviderId = 'demo' | 'alpaca' | 'alphavantage'
 
 export interface Settings {
   apiKey: string // Alpha Vantage
-  massiveKey: string
-  tradierToken: string
-  tradierEnv: 'sandbox' | 'production'
+  alpacaKeyId: string
+  alpacaSecret: string
   provider: ProviderId
   thresholds: Thresholds
   theme: 'system' | 'light' | 'dark'

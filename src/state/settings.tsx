@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { load, save } from '../lib/storage'
 import { DEFAULT_THRESHOLDS, DEFAULT_WATCHLIST, type Settings, type Thresholds } from '../lib/types'
 
-const DEFAULTS: Settings = { apiKey: '', massiveKey: '', tradierToken: '', tradierEnv: 'sandbox', provider: 'demo', thresholds: DEFAULT_THRESHOLDS, theme: 'system', watchlist: DEFAULT_WATCHLIST }
+const DEFAULTS: Settings = { apiKey: '', alpacaKeyId: '', alpacaSecret: '', provider: 'demo', thresholds: DEFAULT_THRESHOLDS, theme: 'system', watchlist: DEFAULT_WATCHLIST }
 
 interface Ctx {
   settings: Settings
@@ -16,7 +16,8 @@ const SettingsContext = createContext<Ctx | null>(null)
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() => {
     const s = load<Settings>('settings', DEFAULTS)
-    return { ...s, thresholds: { ...DEFAULT_THRESHOLDS, ...s.thresholds } }
+    const provider: Settings['provider'] = s.provider === 'alpaca' || s.provider === 'alphavantage' ? s.provider : 'demo'
+    return { ...s, provider, thresholds: { ...DEFAULT_THRESHOLDS, ...s.thresholds } }
   })
   useEffect(() => save('settings', settings), [settings])
   useEffect(() => {

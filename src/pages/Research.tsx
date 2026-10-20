@@ -140,7 +140,7 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
         </div>
         <span className="spacer" />
         <button type="button" className={`pill ${settings.provider === 'demo' ? 'pill-neutral' : 'pill-good'}`} onClick={onGoSettings} style={{ border: 0, cursor: 'pointer' }} title="Change data source">
-          {settings.provider === 'demo' ? 'Demo data' : settings.provider === 'tradier' ? `Tradier ${settings.tradierEnv}` : settings.provider === 'massive' ? 'Massive' : 'Alpha Vantage'}
+          {settings.provider === 'demo' ? 'Demo data' : settings.provider === 'alpaca' ? 'Alpaca' : 'Alpha Vantage'}
         </button>
       </div>
       {loading && progress && <div className="xs faint fade-in">{progress}</div>}
@@ -148,7 +148,7 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
         <div className="banner">
           <IconInfo />
           <span>
-            You are looking at synthetic data. Connect a free Tradier sandbox token in Settings for live chains with greeks.{' '}
+            You are looking at synthetic data. Connect a free Alpaca paper account in Settings for live chains with greeks. Email signup only.{' '}
             <button className="btn btn-sm" type="button" style={{ marginLeft: 8 }} onClick={onGoSettings}>
               Connect live data <IconArrow />
             </button>

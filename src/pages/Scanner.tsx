@@ -147,11 +147,9 @@ export function Scanner({ onOpen }: { onOpen: (symbol: string) => void }) {
         <div className="xs faint">
           {settings.provider === 'demo'
             ? 'Demo data: symbols outside the demo set get a generic synthetic series.'
-            : settings.provider === 'tradier'
-              ? 'Tradier: each symbol uses about three requests plus one per expiry inside your DTE range. Results are cached for 15 minutes.'
-              : settings.provider === 'massive'
-                ? 'Massive: about three requests per symbol at 5 a minute, so expect roughly a minute per ticker on the first pass. Results are cached for six hours.'
-                : 'Alpha Vantage: each symbol uses four of your 25 daily requests. Keep the list short.'}
+            : settings.provider === 'alpaca'
+              ? 'Alpaca: about four requests per symbol against a 200-a-minute limit. Results are cached for 15 minutes.'
+              : 'Alpha Vantage: each symbol uses four of your 25 daily requests. Keep the list short.'}
           {running && progress ? ` · ${progress}` : ''}
         </div>
       </div>

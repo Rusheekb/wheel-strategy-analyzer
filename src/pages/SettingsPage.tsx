@@ -29,9 +29,8 @@ function NumField({ label, help, value, onChange, step = 1, pct = false, min, ma
 
 const PROVIDERS: Array<{ id: ProviderId; title: string; tag: string; blurb: string }> = [
   { id: 'demo', title: 'Demo data', tag: 'No key', blurb: 'Synthetic prices and chains. Good for learning the tool and testing your rules.' },
-  { id: 'massive', title: 'Massive (Polygon)', tag: 'Free key, 5 / min', blurb: 'End-of-day prices and option chains with greeks. Slow but steady: a ticker takes about a minute. Chain access depends on the plan; the test below tells you.' },
-  { id: 'alphavantage', title: 'Alpha Vantage', tag: '25 / day', blurb: 'End-of-day chains with greeks. Four requests per ticker, so about six tickers a day.' },
-  { id: 'tradier', title: 'Tradier', tag: 'Brokerage account', blurb: 'Delayed chains with greeks on a paper-trading token. Requires a Tradier brokerage account, which asks for identity details.' },
+  { id: 'alpaca', title: 'Alpaca', tag: 'Recommended · free', blurb: 'Free paper-trading account, email signup only. Live chains with implied volatility and greeks, 200 requests a minute. Quotes are indicative rather than exchange NBBO.' },
+  { id: 'alphavantage', title: 'Alpha Vantage', tag: '25 / day', blurb: 'End-of-day chains with greeks from the prior session. Four requests per ticker, so about six tickers a day.' },
 ]
 
 export function SettingsPage() {
@@ -88,7 +87,7 @@ export function SettingsPage() {
           <h3>Market data</h3>
           <p className="small muted">Keys are stored in this browser only and sent straight to the provider.</p>
         </div>
-        <div className="grid grid-4">
+        <div className="grid grid-3">
           {PROVIDERS.map((p) => (
             <button
               key={p.id}
@@ -110,48 +109,31 @@ export function SettingsPage() {
           ))}
         </div>
 
-        {settings.provider === 'tradier' && (
+        {settings.provider === 'alpaca' && (
           <div style={{ display: 'grid', gap: 12 }}>
             <ol className="small muted" style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 4 }}>
               <li>
-                Create a free developer account at{' '}
-                <a href="https://developer.tradier.com" target="_blank" rel="noreferrer">
-                  developer.tradier.com
-                </a>
-                . No brokerage account is needed for the sandbox.
+                Sign up at{' '}
+                <a href="https://app.alpaca.markets/signup" target="_blank" rel="noreferrer">
+                  alpaca.markets
+                </a>{' '}
+                with an email address. Stop when it offers to open a live brokerage account: paper trading is all this needs, and no identity details or funding are required.
               </li>
-              <li>Open the dashboard and copy the sandbox access token.</li>
-              <li>Paste it below and run the connection test.</li>
+              <li>On the dashboard switch to Paper Trading, open the API keys panel, and generate a key.</li>
+              <li>Paste the key ID and the secret below, then run the connection test. It reports which fields your account returns.</li>
             </ol>
             <div className="form-grid">
-              <label className="field" style={{ gridColumn: '1 / -1' }}>
-                <span>Access token</span>
-                <input className="input mono" type="password" value={settings.tradierToken} onChange={(e) => update({ tradierToken: e.target.value.trim() })} placeholder="Paste your Tradier token" autoComplete="off" />
-                <span className="field-help">Sandbox tokens can expire. If the test fails with a rejected token, generate a new one in the dashboard.</span>
+              <label className="field">
+                <span>API key ID</span>
+                <input className="input mono" type="password" value={settings.alpacaKeyId} onChange={(e) => update({ alpacaKeyId: e.target.value.trim() })} placeholder="PK..." autoComplete="off" />
+              </label>
+              <label className="field">
+                <span>API secret key</span>
+                <input className="input mono" type="password" value={settings.alpacaSecret} onChange={(e) => update({ alpacaSecret: e.target.value.trim() })} placeholder="Secret" autoComplete="off" />
               </label>
             </div>
-            <div className="row">
-              {(['sandbox', 'production'] as const).map((env) => (
-                <button key={env} className={`chip ${settings.tradierEnv === env ? 'active' : ''}`} type="button" onClick={() => update({ tradierEnv: env })}>
-                  {env === 'sandbox' ? 'Sandbox (free, 15-min delayed)' : 'Production (brokerage account)'}
-                </button>
-              ))}
-            </div>
+            <span className="field-help">Keys stay in this browser and go straight to Alpaca. The app always requests the free indicative feed, so no OPRA agreement is needed.</span>
           </div>
-        )}
-
-        {settings.provider === 'massive' && (
-          <label className="field">
-            <span>Massive API key</span>
-            <input className="input mono" type="password" value={settings.massiveKey} onChange={(e) => update({ massiveKey: e.target.value.trim() })} placeholder="Paste your key" autoComplete="off" />
-            <span className="field-help">
-              Free at{' '}
-              <a href="https://massive.com/dashboard/keys" target="_blank" rel="noreferrer">
-                massive.com
-              </a>
-              . The free plan allows 5 requests a minute, so the app paces itself and caches responses for six hours. Run the test: it reports whether your plan includes the option chain snapshot, which carries greeks.
-            </span>
-          </label>
         )}
 
         {settings.provider === 'alphavantage' && (

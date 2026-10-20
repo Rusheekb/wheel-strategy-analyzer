@@ -1,4 +1,4 @@
-import { probTouch } from './bs'
+import { bsGreeks, probTouch } from './bs'
 import { midPrice, spreadPct, type ExpiryInfo, type TickerMetrics } from './metrics'
 import { clamp, piecewise } from './stats'
 import type { OptionContract, OptionType, Thresholds } from './types'
@@ -86,8 +86,9 @@ export function analyzeStrikes(
     if (!otm) continue
     const mid = midPrice(c)
     if (!(mid > 0)) continue
-    const absDelta = Math.abs(c.delta)
     const iv = c.iv > 0 ? c.iv : exp.atmIv
+    const delta = c.delta !== 0 || !(iv > 0) ? c.delta : bsGreeks(side, { S: m.price, K: c.strike, T, r: 0.043, sigma: iv }).delta
+    const absDelta = Math.abs(delta)
     const premiumYield = side === 'put' ? mid / c.strike : mid / m.price
     const annualized = premiumYield * (365 / exp.dte)
     const breakeven = side === 'put' ? c.strike - mid : c.strike + mid
@@ -104,14 +105,14 @@ export function analyzeStrikes(
     score += piecewise(annualized / t.minAnnualizedReturn, [[0.5, 0], [1, 18], [1.6, 28]])
     score += piecewise(sigmas, [[0.4, 0], [0.8, 10], [1, 16], [1.6, 18]])
     score += Number.isFinite(sp) ? piecewise(sp, [[0.03, 14], [0.1, 8], [0.2, 2], [0.4, 0]]) : 8
-    score += piecewise(c.openInterest, [[0, 0], [t.minOpenInterest, 7], [t.minOpenInterest * 5, 10]])
+    score += Number.isFinite(c.openInterest) ? piecewise(c.openInterest, [[0, 0], [t.minOpenInterest, 7], [t.minOpenInterest * 5, 10]]) : 7
     if (belowBasis) {
       score *= 0.35
       flags.push('Strike below cost basis: assignment locks in a loss on shares')
     }
     if (!inBand) flags.push(absDelta < dMin ? 'Below delta band: thin premium' : 'Above delta band: elevated assignment odds')
     if (Number.isFinite(sp) && sp > t.maxSpreadPct) flags.push('Wide bid-ask spread')
-    if (c.openInterest < t.minOpenInterest) flags.push('Low open interest')
+    if (Number.isFinite(c.openInterest) && c.openInterest < t.minOpenInterest) flags.push('Low open interest')
     if (annualized < t.minAnnualizedReturn) flags.push('Annualized return below floor')
 
     rows.push({
@@ -121,7 +122,7 @@ export function analyzeStrikes(
       bid: c.bid,
       ask: c.ask,
       spreadPct: sp,
-      delta: c.delta,
+      delta,
       iv,
       openInterest: c.openInterest,
       volume: c.volume,

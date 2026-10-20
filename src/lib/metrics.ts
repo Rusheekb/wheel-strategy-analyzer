@@ -160,7 +160,7 @@ export function computeMetrics(snapshot: TickerSnapshot, today = new Date()): Ti
     earningsDays: daysTo(snapshot.info.nextEarningsDate),
     exDivDays: daysTo(snapshot.info.exDividendDate),
     medianSpreadPct,
-    totalOpenInterest: snapshot.chain.reduce((a, c) => a + (c.openInterest || 0), 0),
+    totalOpenInterest: snapshot.chain.reduce((a, c) => a + (Number.isFinite(c.openInterest) ? c.openInterest : 0), 0),
     expiries,
     trend,
   }
