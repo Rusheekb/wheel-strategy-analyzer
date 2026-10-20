@@ -42,7 +42,7 @@ export interface CompanyInfo {
 export interface TickerSnapshot {
   symbol: string
   asOf: string
-  source: 'demo' | 'alphavantage'
+  source: ProviderId
   history: PricePoint[]
   chain: OptionContract[]
   info: CompanyInfo
@@ -81,12 +81,19 @@ export const DEFAULT_THRESHOLDS: Thresholds = {
   avoidEarnings: true,
 }
 
+export type ProviderId = 'demo' | 'tradier' | 'alphavantage'
+
 export interface Settings {
-  apiKey: string
-  provider: 'demo' | 'alphavantage'
+  apiKey: string // Alpha Vantage
+  tradierToken: string
+  tradierEnv: 'sandbox' | 'production'
+  provider: ProviderId
   thresholds: Thresholds
   theme: 'system' | 'light' | 'dark'
+  watchlist: string[]
 }
+
+export const DEFAULT_WATCHLIST = ['AAPL', 'MSFT', 'AMD', 'KO', 'SOFI', 'PLTR', 'F', 'XOM']
 
 export type JournalKind = 'csp' | 'cc' | 'assigned' | 'called_away' | 'shares'
 export type JournalStatus = 'open' | 'expired' | 'closed' | 'assigned' | 'rolled'

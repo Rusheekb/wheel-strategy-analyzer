@@ -1,6 +1,8 @@
-import { useRef } from 'react'
-import { loadRaw, remove, save } from '../lib/storage'
-import type { JournalEntry, Thresholds } from '../lib/types'
+import { useRef, useState } from 'react'
+import { IconCheck, IconAlert } from '../components/Icons'
+import { ProviderError, providerFor } from '../data'
+import { cacheClear, loadRaw, save } from '../lib/storage'
+import type { JournalEntry, ProviderId, Thresholds } from '../lib/types'
 import { useJournal } from '../state/journal'
 import { useSettings } from '../state/settings'
 
@@ -25,12 +27,30 @@ function NumField({ label, help, value, onChange, step = 1, pct = false, min, ma
   )
 }
 
+const PROVIDERS: Array<{ id: ProviderId; title: string; tag: string; blurb: string }> = [
+  { id: 'demo', title: 'Demo data', tag: 'No key', blurb: 'Synthetic prices and chains. Good for learning the tool and testing your rules.' },
+  { id: 'tradier', title: 'Tradier', tag: 'Recommended', blurb: 'Free developer sandbox with 15-minute delayed chains, IV and greeks. Per-minute limits, so the scanner works.' },
+  { id: 'alphavantage', title: 'Alpha Vantage', tag: '25 requests / day', blurb: 'End-of-day chains with greeks. Four requests per ticker, so about six tickers a day.' },
+]
+
 export function SettingsPage() {
   const { settings, update, updateThresholds, resetThresholds } = useSettings()
   const journal = useJournal()
   const t = settings.thresholds
   const set = (k: keyof Thresholds) => (v: number) => updateThresholds({ [k]: v })
   const fileRef = useRef<HTMLInputElement>(null)
+  const [test, setTest] = useState<{ state: 'idle' | 'running' | 'ok' | 'fail'; message?: string; hint?: string }>({ state: 'idle' })
+
+  const runTest = async () => {
+    setTest({ state: 'running' })
+    try {
+      const msg = await providerFor(settings).testConnection()
+      setTest({ state: 'ok', message: msg })
+    } catch (e) {
+      const err = e as ProviderError
+      setTest({ state: 'fail', message: err.message || 'Connection failed', hint: err instanceof ProviderError ? err.hint : undefined })
+    }
+  }
 
   const exportJournal = () => {
     const blob = new Blob([JSON.stringify(journal.entries, null, 2)], { type: 'application/json' })
@@ -53,12 +73,6 @@ export function SettingsPage() {
       alert('That file is not a journal export.')
     }
   }
-  const clearCache = () => {
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith('wheel.cache.'))
-      .forEach((k) => remove(k.slice('wheel.'.length)))
-    alert('Cached market data cleared.')
-  }
 
   return (
     <div className="page">
@@ -68,30 +82,138 @@ export function SettingsPage() {
         <p>The scores on the research desk are built from these thresholds. Tighten them as you learn what you can hold through.</p>
       </section>
 
-      <div className="grid grid-2">
-        <div className="card card-pad" style={{ display: 'grid', gap: 14 }}>
+      <div className="card card-pad" style={{ display: 'grid', gap: 14 }}>
+        <div>
           <h3>Market data</h3>
-          <div className="row">
-            <button className={`chip ${settings.provider === 'demo' ? 'active' : ''}`} type="button" onClick={() => update({ provider: 'demo' })}>
-              Demo data
+          <p className="small muted">Keys are stored in this browser only and sent straight to the provider.</p>
+        </div>
+        <div className="grid grid-3">
+          {PROVIDERS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="card card-pad"
+              onClick={() => {
+                update({ provider: p.id })
+                setTest({ state: 'idle' })
+              }}
+              style={{ textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 6, alignContent: 'start', outline: settings.provider === p.id ? '2px solid var(--accent)' : 'none', outlineOffset: -2, background: settings.provider === p.id ? 'var(--accent-soft)' : undefined }}
+              aria-pressed={settings.provider === p.id}
+            >
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <b>{p.title}</b>
+                <span className="pill pill-neutral">{p.tag}</span>
+              </div>
+              <span className="small muted">{p.blurb}</span>
             </button>
-            <button className={`chip ${settings.provider === 'alphavantage' ? 'active' : ''}`} type="button" onClick={() => update({ provider: 'alphavantage' })}>
-              Alpha Vantage (live, end of day)
-            </button>
+          ))}
+        </div>
+
+        {settings.provider === 'tradier' && (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <ol className="small muted" style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 4 }}>
+              <li>
+                Create a free developer account at{' '}
+                <a href="https://developer.tradier.com" target="_blank" rel="noreferrer">
+                  developer.tradier.com
+                </a>
+                . No brokerage account is needed for the sandbox.
+              </li>
+              <li>Open the dashboard and copy the sandbox access token.</li>
+              <li>Paste it below and run the connection test.</li>
+            </ol>
+            <div className="form-grid">
+              <label className="field" style={{ gridColumn: '1 / -1' }}>
+                <span>Access token</span>
+                <input className="input mono" type="password" value={settings.tradierToken} onChange={(e) => update({ tradierToken: e.target.value.trim() })} placeholder="Paste your Tradier token" autoComplete="off" />
+                <span className="field-help">Sandbox tokens can expire. If the test fails with a rejected token, generate a new one in the dashboard.</span>
+              </label>
+            </div>
+            <div className="row">
+              {(['sandbox', 'production'] as const).map((env) => (
+                <button key={env} className={`chip ${settings.tradierEnv === env ? 'active' : ''}`} type="button" onClick={() => update({ tradierEnv: env })}>
+                  {env === 'sandbox' ? 'Sandbox (free, 15-min delayed)' : 'Production (brokerage account)'}
+                </button>
+              ))}
+            </div>
           </div>
+        )}
+
+        {settings.provider === 'alphavantage' && (
           <label className="field">
             <span>Alpha Vantage API key</span>
             <input className="input mono" type="password" value={settings.apiKey} onChange={(e) => update({ apiKey: e.target.value.trim() })} placeholder="Paste your key" autoComplete="off" />
             <span className="field-help">
-              Free at alphavantage.co/support/#api-key. The free tier allows 25 requests a day; each ticker uses four, and results are cached for the day in this browser. The key never leaves your browser.
+              Free at{' '}
+              <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noreferrer">
+                alphavantage.co
+              </a>
+              . 25 requests a day; each ticker uses four. Responses are cached for the day.
             </span>
           </label>
+        )}
+
+        <div className="row">
+          <button className="btn" type="button" onClick={() => void runTest()} disabled={test.state === 'running'}>
+            {test.state === 'running' ? 'Testing' : 'Test connection'}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
+            onClick={() => {
+              cacheClear()
+              setTest({ state: 'ok', message: 'Cached quotes cleared.' })
+            }}
+          >
+            Clear cached quotes
+          </button>
+          {test.state === 'ok' && (
+            <span className="pill pill-good">
+              <IconCheck width={12} height={12} /> {test.message}
+            </span>
+          )}
+          {test.state === 'fail' && (
+            <span className="small" style={{ color: 'var(--critical)', display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+              <IconAlert width={14} height={14} /> {test.message} {test.hint && <span className="muted">{test.hint}</span>}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-2">
+        <div className="card card-pad" style={{ display: 'grid', gap: 14 }}>
           <div className="row">
-            <button className="btn btn-sm" type="button" onClick={clearCache}>
-              Clear cached quotes
+            <h3>Trading rules</h3>
+            <span className="spacer" />
+            <button className="btn btn-ghost btn-sm" type="button" onClick={resetThresholds}>
+              Reset defaults
             </button>
           </div>
-          <h3 style={{ marginTop: 8 }}>Appearance</h3>
+          <div className="form-grid" style={{ alignItems: 'start' }}>
+            <NumField label="Put delta min" value={t.putDeltaMin} onChange={set('putDeltaMin')} step={0.01} min={0.02} max={0.6} />
+            <NumField label="Put delta max" value={t.putDeltaMax} onChange={set('putDeltaMax')} step={0.01} min={0.05} max={0.7} />
+            <NumField label="Call delta min" value={t.callDeltaMin} onChange={set('callDeltaMin')} step={0.01} min={0.02} max={0.6} />
+            <NumField label="Call delta max" value={t.callDeltaMax} onChange={set('callDeltaMax')} step={0.01} min={0.05} max={0.7} />
+            <NumField label="Min days to expiry" value={t.dteMin} onChange={set('dteMin')} min={1} max={120} />
+            <NumField label="Max days to expiry" value={t.dteMax} onChange={set('dteMax')} min={2} max={180} />
+            <NumField label="Min annualized return %" value={t.minAnnualizedReturn} onChange={set('minAnnualizedReturn')} pct step={1} help="On collateral, at the recommended strike" />
+            <NumField label="Min vol rank" value={t.minIvRank} onChange={set('minIvRank')} min={0} max={100} />
+            <NumField label="Max spread % of mid" value={t.maxSpreadPct} onChange={set('maxSpreadPct')} pct step={1} />
+            <NumField label="Min open interest" value={t.minOpenInterest} onChange={set('minOpenInterest')} step={50} min={0} />
+            <NumField label="Account size $" value={t.accountSize} onChange={set('accountSize')} step={1000} min={1000} />
+            <NumField label="Max position % of account" value={t.maxPositionPct} onChange={set('maxPositionPct')} pct step={1} help="Collateral for one contract" />
+          </div>
+          <label className="check" style={{ marginTop: 4 }}>
+            <input type="checkbox" checked={t.avoidEarnings} onChange={(e) => updateThresholds({ avoidEarnings: e.target.checked })} />
+            <div>
+              <div className="t">Cap the verdict when earnings fall inside the expiry</div>
+              <div className="d">Leave on unless you are deliberately trading the earnings premium.</div>
+            </div>
+          </label>
+        </div>
+
+        <div className="card card-pad" style={{ display: 'grid', gap: 14, alignContent: 'start', alignSelf: 'start' }}>
+          <h3>Appearance</h3>
           <div className="row">
             {(['system', 'light', 'dark'] as const).map((th) => (
               <button key={th} className={`chip ${settings.theme === th ? 'active' : ''}`} type="button" onClick={() => update({ theme: th })}>
@@ -119,37 +241,6 @@ export function SettingsPage() {
             </button>
           </div>
           <span className="field-help">Everything is stored in this browser only. Export before clearing site data or switching devices.</span>
-        </div>
-
-        <div className="card card-pad" style={{ display: 'grid', gap: 14 }}>
-          <div className="row">
-            <h3>Trading rules</h3>
-            <span className="spacer" />
-            <button className="btn btn-ghost btn-sm" type="button" onClick={resetThresholds}>
-              Reset defaults
-            </button>
-          </div>
-          <div className="form-grid">
-            <NumField label="Put delta min" value={t.putDeltaMin} onChange={set('putDeltaMin')} step={0.01} min={0.02} max={0.6} />
-            <NumField label="Put delta max" value={t.putDeltaMax} onChange={set('putDeltaMax')} step={0.01} min={0.05} max={0.7} />
-            <NumField label="Call delta min" value={t.callDeltaMin} onChange={set('callDeltaMin')} step={0.01} min={0.02} max={0.6} />
-            <NumField label="Call delta max" value={t.callDeltaMax} onChange={set('callDeltaMax')} step={0.01} min={0.05} max={0.7} />
-            <NumField label="Min days to expiry" value={t.dteMin} onChange={set('dteMin')} min={1} max={120} />
-            <NumField label="Max days to expiry" value={t.dteMax} onChange={set('dteMax')} min={2} max={180} />
-            <NumField label="Min annualized return %" value={t.minAnnualizedReturn} onChange={set('minAnnualizedReturn')} pct step={1} help="On collateral, at the recommended strike" />
-            <NumField label="Min vol rank" value={t.minIvRank} onChange={set('minIvRank')} min={0} max={100} />
-            <NumField label="Max spread % of mid" value={t.maxSpreadPct} onChange={set('maxSpreadPct')} pct step={1} />
-            <NumField label="Min open interest" value={t.minOpenInterest} onChange={set('minOpenInterest')} step={50} min={0} />
-            <NumField label="Account size $" value={t.accountSize} onChange={set('accountSize')} step={1000} min={1000} />
-            <NumField label="Max position % of account" value={t.maxPositionPct} onChange={set('maxPositionPct')} pct step={1} help="Collateral for one contract" />
-          </div>
-          <label className="check" style={{ marginTop: 4 }}>
-            <input type="checkbox" checked={t.avoidEarnings} onChange={(e) => updateThresholds({ avoidEarnings: e.target.checked })} />
-            <div>
-              <div className="t">Cap the verdict when earnings fall inside the expiry</div>
-              <div className="d">Leave on unless you are deliberately trading the earnings premium.</div>
-            </div>
-          </label>
         </div>
       </div>
     </div>

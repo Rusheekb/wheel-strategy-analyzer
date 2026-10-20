@@ -139,5 +139,12 @@ export function alphaVantageProvider(apiKey: string): DataProvider {
         note: 'Alpha Vantage end-of-day data from the last completed session. Greeks and IV are provider-supplied.',
       }
     },
+    async testConnection() {
+      if (!apiKey) throw new ProviderError('No Alpha Vantage API key set.')
+      const j = await getJson({ function: 'GLOBAL_QUOTE', symbol: 'SPY' }, apiKey)
+      const q = j['Global Quote'] as Record<string, string> | undefined
+      if (!q || !q['05. price']) throw new ProviderError('Unexpected response from Alpha Vantage.')
+      return `Connected. SPY last ${(+q['05. price']).toFixed(2)} (${q['07. latest trading day']}).`
+    },
   }
 }

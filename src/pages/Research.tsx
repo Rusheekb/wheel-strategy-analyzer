@@ -11,7 +11,7 @@ import { fmtDate, fmtMoney, fmtPct, todayISO, uid } from '../lib/format'
 import { computeMetrics, pickTargetExpiry } from '../lib/metrics'
 import { analyzeStrikes, scoreSide, type StrikeRow } from '../lib/scoring'
 import type { OptionType, TickerSnapshot } from '../lib/types'
-import { loadRaw, save } from '../lib/storage'
+import { loadRaw, pushRecent, save } from '../lib/storage'
 import { positionsFrom, useJournal } from '../state/journal'
 import { useSettings } from '../state/settings'
 
@@ -26,6 +26,7 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
   const [expiryKey, setExpiryKey] = useState<string | null>(null)
   const [selected, setSelected] = useState<StrikeRow | undefined>()
   const [logged, setLogged] = useState<string | null>(null)
+  const [recent, setRecent] = useState<string[]>(() => loadRaw<string[]>('recent', []))
 
   const t = settings.thresholds
 
@@ -42,6 +43,7 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
       setSelected(undefined)
       setQuery(s)
       save('lastSymbol', s)
+      setRecent(pushRecent('recent', s))
     } catch (e) {
       const err = e as ProviderError
       setError({ message: err.message || 'Failed to load data', hint: err instanceof ProviderError ? err.hint : undefined })
@@ -125,17 +127,30 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
         </button>
       </form>
       <div className="row">
-        <span className="xs faint">{settings.provider === 'demo' ? 'Demo set:' : 'Quick picks:'}</span>
+        <span className="xs faint">{settings.provider === 'demo' ? 'Demo set:' : 'Recent:'}</span>
         <div className="chips">
-          {Object.keys(DEMO_PROFILES).map((s) => (
-            <button key={s} type="button" className={`chip ${snapshot?.symbol === s ? 'active' : ''}`} onClick={() => void run(s)}>
+          {(settings.provider === 'demo' ? Object.keys(DEMO_PROFILES) : recent.length ? recent : settings.watchlist.slice(0, 6)).map((s) => (
+            <button key={s} type="button" className={`chip mono ${snapshot?.symbol === s ? 'active' : ''}`} onClick={() => void run(s)}>
               {s}
             </button>
           ))}
         </div>
         <span className="spacer" />
-        <span className={`pill ${settings.provider === 'demo' ? 'pill-neutral' : 'pill-good'}`}>{settings.provider === 'demo' ? 'Demo data' : 'Alpha Vantage'}</span>
+        <button type="button" className={`pill ${settings.provider === 'demo' ? 'pill-neutral' : 'pill-good'}`} onClick={onGoSettings} style={{ border: 0, cursor: 'pointer' }} title="Change data source">
+          {settings.provider === 'demo' ? 'Demo data' : settings.provider === 'tradier' ? `Tradier ${settings.tradierEnv}` : 'Alpha Vantage'}
+        </button>
       </div>
+      {settings.provider === 'demo' && (
+        <div className="banner">
+          <IconInfo />
+          <span>
+            You are looking at synthetic data. Connect a free Tradier sandbox token in Settings for live chains with greeks.{' '}
+            <button className="btn btn-sm" type="button" style={{ marginLeft: 8 }} onClick={onGoSettings}>
+              Connect live data <IconArrow />
+            </button>
+          </span>
+        </div>
+      )}
 
       {error && (
         <div className="banner error">
@@ -177,7 +192,7 @@ export function Research({ onGoSettings }: { onGoSettings: () => void }) {
               {costBasis ? ` · Holding ${position?.shares} shares, net basis ${fmtMoney(costBasis)}` : ''}
             </span>
           </div>
-          {snapshot.note && (
+          {snapshot.note && snapshot.source !== 'demo' && (
             <div className="banner">
               <IconInfo />
               <span>{snapshot.note}</span>

@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { load, save } from '../lib/storage'
-import { DEFAULT_THRESHOLDS, type Settings, type Thresholds } from '../lib/types'
+import { DEFAULT_THRESHOLDS, DEFAULT_WATCHLIST, type Settings, type Thresholds } from '../lib/types'
 
-const DEFAULTS: Settings = { apiKey: '', provider: 'demo', thresholds: DEFAULT_THRESHOLDS, theme: 'system' }
+const DEFAULTS: Settings = { apiKey: '', tradierToken: '', tradierEnv: 'sandbox', provider: 'demo', thresholds: DEFAULT_THRESHOLDS, theme: 'system', watchlist: DEFAULT_WATCHLIST }
 
 interface Ctx {
   settings: Settings

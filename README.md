@@ -8,7 +8,7 @@ Wheelhouse is a research and education tool. It does not place trades, and nothi
 
 ## What it scores
 
-Each side (sell put, sell call) gets a 0–100 score built from seven factors, then a verdict: **Favorable**, **Acceptable**, or **Wait**.
+Each side (sell put, sell call) gets a 0–100 score built from nine factors, then a verdict: **Favorable**, **Acceptable**, or **Wait**.
 
 | Factor | Points | What it measures |
 | --- | --- | --- |
@@ -26,12 +26,19 @@ Hard caps limit the verdict regardless of score: earnings inside the expiry, a r
 
 The strike ladder ranks every out-of-the-money strike for the chosen expiry by delta band fit, annualized return, distance in expected-move sigmas, spread and open interest. The trade ticket shows credit, collateral, breakeven, probability of expiring OTM, probability of touch, theta per day and a management plan (50% profit target, 21 DTE time stop, roll rules).
 
+## Scanner
+
+The Scanner page scores every symbol on your watchlist for the target expiry and sorts by the better side, with the recommended strike and annualized return for each. Click a row to open it on the research desk. The watchlist is editable and persists in the browser.
+
 ## Data
 
-- **Demo data** (default): synthetic price series and Black-Scholes option chains for eight profiles (AAPL, MSFT, AMD, KO, SOFI, PLTR, F, XOM) and a generic series for any other symbol. The app is fully usable with no key.
-- **Alpha Vantage** (live, end of day): paste a free key in Settings. Each ticker uses four requests (daily prices, options chain with greeks, company overview, earnings calendar). The free tier allows 25 requests per day, so responses are cached per calendar day in the browser. The key never leaves your browser.
+Pick a source in Settings. Keys are stored in the browser only and sent straight to the provider.
 
-Vol rank is computed from 20-day realized volatility because the free feed has no implied-volatility history. Treat it as the volatility regime, and prefer your broker's true IV rank when you have it.
+- **Demo data** (default): synthetic price series and Black-Scholes option chains for eight profiles (AAPL, MSFT, AMD, KO, SOFI, PLTR, F, XOM) and a generic series for any other symbol. The app is fully usable with no key.
+- **Tradier** (recommended): a free developer sandbox account at developer.tradier.com gives a token with 15-minute delayed quotes, full chains, and ORATS greeks and IV. Limits are per minute rather than per day, so the scanner is practical. Each ticker uses three requests plus one per expiry inside the DTE range, and responses are cached for 15 minutes. A brokerage production token also works. Earnings and ex-dividend dates come from Tradier's beta fundamentals endpoints, which may not be available on every token; when they are missing the app says so and treats the date as unknown.
+- **Alpha Vantage**: paste a free key. Each ticker uses four requests (daily prices, options chain with greeks, company overview, earnings calendar). The free tier allows 25 requests per day, so responses are cached per calendar day.
+
+Vol rank is computed from 20-day realized volatility because none of the free feeds carry implied-volatility history. Treat it as the volatility regime, and prefer your broker's true IV rank when you have it.
 
 ## Running locally
 

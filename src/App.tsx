@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
-import { IconBook, IconChart, IconJournal, IconMoon, IconSettings, IconSun, IconWheel } from './components/Icons'
+import { IconBook, IconChart, IconJournal, IconMoon, IconSearch, IconSettings, IconSun, IconWheel } from './components/Icons'
 import { Journal } from './pages/Journal'
 import { Playbook } from './pages/Playbook'
 import { Research } from './pages/Research'
+import { Scanner } from './pages/Scanner'
 import { SettingsPage } from './pages/SettingsPage'
 import { JournalProvider } from './state/journal'
 import { SettingsProvider, useSettings } from './state/settings'
 
-type Page = 'research' | 'journal' | 'playbook' | 'settings'
+type Page = 'research' | 'scanner' | 'journal' | 'playbook' | 'settings'
 const PAGES: Array<{ id: Page; label: string; icon: typeof IconChart }> = [
   { id: 'research', label: 'Research', icon: IconChart },
+  { id: 'scanner', label: 'Scanner', icon: IconSearch },
   { id: 'journal', label: 'Journal', icon: IconJournal },
   { id: 'playbook', label: 'Playbook', icon: IconBook },
   { id: 'settings', label: 'Settings', icon: IconSettings },
@@ -60,6 +62,7 @@ function Shell() {
       </header>
       <main className="shell">
         {page === 'research' && <Research onGoSettings={() => go('settings')} />}
+        {page === 'scanner' && <Scanner onOpen={() => go('research')} />}
         {page === 'journal' && <Journal />}
         {page === 'playbook' && <Playbook />}
         {page === 'settings' && <SettingsPage />}

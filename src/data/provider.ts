@@ -1,9 +1,17 @@
-import type { TickerSnapshot } from '../lib/types'
+import type { ProviderId, TickerSnapshot } from '../lib/types'
+
+export interface FetchOptions {
+  // Only load option expiries up to this many days out. Providers that
+  // fetch one request per expiry use it to keep scans cheap.
+  maxDte?: number
+}
 
 export interface DataProvider {
-  id: 'demo' | 'alphavantage'
+  id: ProviderId
   label: string
-  fetchSnapshot(symbol: string): Promise<TickerSnapshot>
+  fetchSnapshot(symbol: string, opts?: FetchOptions): Promise<TickerSnapshot>
+  // Cheap call to confirm credentials work. Resolves to a short status line.
+  testConnection(): Promise<string>
 }
 
 export class ProviderError extends Error {

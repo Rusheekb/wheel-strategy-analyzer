@@ -250,7 +250,10 @@ export const demoProvider: DataProvider = {
   id: 'demo',
   label: 'Demo data',
   async fetchSnapshot(symbol) {
-    await new Promise((r) => setTimeout(r, 350))
+    await new Promise((r) => setTimeout(r, 250))
     return demoSnapshot(symbol)
+  },
+  async testConnection() {
+    return 'Demo data needs no connection.'
   },
 }
